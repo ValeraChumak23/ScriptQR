@@ -1,0 +1,49 @@
+﻿<Window x:Class="ScriptQR.Result"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ScriptQR"
+        mc:Ignorable="d"
+        Title="Result" Height="550" Width="800"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <StackPanel Margin="20,19,20,0" VerticalAlignment ="Top">
+            <TextBlock>
+                <Run Text="Количество гостей: " />
+                <Run Text="{Binding CountPerson}" />
+            </TextBlock>
+        </StackPanel>
+
+
+        <ListView Name="UnitListView" SelectionMode="Single" HorizontalAlignment="Center" Margin="0,40,0,0">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Номер" Width="50" DisplayMemberBinding="{Binding Number}" />
+                    <GridViewColumn Header="Фио гостя" Width="250" DisplayMemberBinding="{Binding Name}" />
+                    <GridViewColumn Header="Статус гостя" Width="150">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <Image Source="{Binding ImageStatusD}" Width="20" Height="20"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Наличие QR-кода" Width="150">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <Image Source="{Binding ImageStatusQ}" Width="20" Height="20"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                    <GridViewColumn Header="Отправка QR-кода" Width="150">
+                        <GridViewColumn.CellTemplate>
+                            <DataTemplate>
+                                <Image Source="{Binding ImageStatusSend}" Width="20" Height="20"/>
+                            </DataTemplate>
+                        </GridViewColumn.CellTemplate>
+                    </GridViewColumn>
+                </GridView>
+            </ListView.View>
+        </ListView>
+    </Grid>
+</Window>

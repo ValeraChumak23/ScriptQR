@@ -1,0 +1,19 @@
+﻿<Window x:Class="ScriptQR.Send_window"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ScriptQR"
+        mc:Ignorable="d"
+        Title="Отправка" Height="170" Width="470">
+    <Grid Height="221" VerticalAlignment="Top">
+        <StackPanel Margin="20,20,20,157">
+            <TextBlock Text="Получатель" Margin="0,0,0,5"/>
+            <TextBox Name="Recipient" Width="Auto"/>
+
+        </StackPanel>
+        <StackPanel Width="94"  HorizontalAlignment="Center" VerticalAlignment="Center" Height="28">
+            <Button Content="Отправить" Width="90" Click="Send_Click" Height="26" />
+        </StackPanel>
+    </Grid>
+</Window>

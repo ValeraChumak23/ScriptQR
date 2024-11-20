@@ -1,0 +1,75 @@
+﻿<Window x:Class="ScriptQR.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ScriptQR"
+        Language="ru-RU"
+        mc:Ignorable="d"
+        Title="Подготовка данных" Height="496" Width="1156"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid x:Name="MainRoot" Margin="0,0,0,-6">
+        <ProgressBar Name="LoadingProgressBar" IsIndeterminate="True" Visibility="Collapsed" Width="200" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Button Content="Загрузить данные" Width="136" Height="53" VerticalAlignment="Top" HorizontalAlignment="Center" Click="Dounload_Data" Margin="0,396,0,0"/>
+        <TextBlock Name="SelectedFileText" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,365,0,0"/>
+        <DataGrid Name="PersonDataGrid" AutoGenerateColumns="False" Margin="0,57,10,124">
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="">
+                    <DataGridTemplateColumn.HeaderTemplate>
+                        <DataTemplate>
+                            <CheckBox x:Name="SelectAllCheckBox"  Click="SelectAllCheckBox_Click" IsChecked="{Binding IsSelected}"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.HeaderTemplate>
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" 
+                              Click="IndividualCheckBox_Click"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTextColumn Header="Фамилия" Binding="{Binding LastName }"/>
+                <DataGridTextColumn Header="Имя" Binding="{Binding FirstName}"/>
+                <DataGridTextColumn Header="Отчество" Binding="{Binding MiddleName}"/>
+                <DataGridTextColumn Header="Дата начала визита" Binding="{Binding Date_Start,StringFormat= dd MMMM yyyy}"/>
+                <DataGridTextColumn Header="Дата конца визита" Binding="{Binding Date_End,StringFormat= dd MMMM yyyy}"/>
+                <DataGridTextColumn Header="Цель визита" Binding="{Binding Purpose_Visit}"/>
+                <DataGridTextColumn Header="Почта" Binding="{Binding Email}"/>
+                <DataGridTextColumn Header="Номер телефона" Binding="{Binding Phone_number}"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+
+
+
+        <Menu VerticalAlignment="Top">
+            <MenuItem Click= "SelectFile_Click" >
+                <MenuItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Image Source="C:\ScriptQR\Imge,Icon\download.png" Width="20" Height="20"/>
+                        <TextBlock Text="Загрузить" Margin="3,1,0,0"/>
+                    </StackPanel>
+                </MenuItem.Header>
+            </MenuItem>
+            <MenuItem Name ="DateButton" Click= "Date_windows" IsEnabled="False"  >
+                <MenuItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Image  Source="C:\ScriptQR\Imge,Icon\date.png" Width="18" Height="18"/>
+                        <TextBlock Text="Выбор даты" Margin="3,1,0,0"/>
+                    </StackPanel>
+                </MenuItem.Header>
+            </MenuItem>
+            <MenuItem Click="Settings">
+                <MenuItem.Header>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <Image Source="C:\ScriptQR\Imge,Icon\settings.png" Width="19" Height="20" />
+                        <TextBlock Text="Настройки" Margin="3,1,0,0" Height="16"/>
+                    </StackPanel>
+                </MenuItem.Header>
+            </MenuItem>
+
+
+        </Menu>
+    </Grid>
+</Window>

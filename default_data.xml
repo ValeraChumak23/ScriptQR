@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AccessData>
+  <AccessGroup>
+    <Name>Test группа доступа</Name>
+    <Key>5e7fe9c8-cbde-4401-80f0-3fb80dbef4e6</Key>
+  </AccessGroup>
+  <OrgUnit>
+    <Name>Test подразделение</Name>
+    <Key>3b60d8bf-79d8-4fe6-8980-b28378db3698</Key>
+  </OrgUnit>
+  <Sending>
+    <Flag>False</Flag>
+  </Sending>
+</AccessData>
