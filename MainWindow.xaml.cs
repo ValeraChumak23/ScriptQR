@@ -56,6 +56,8 @@ namespace ScriptQR
         public Guid Session_ID = Guid.Empty;
         public Guid Email_column_ID = Guid.Empty;
         public Guid Phone_column_ID = Guid.Empty;
+        public Guid Date_start_end_column_ID = Guid.Empty;
+        public Guid Who_inveted_column_ID = Guid.Empty;
 
         public string Name_Access;
         public string Key_Access;
@@ -446,7 +448,8 @@ namespace ScriptQR
                                             };
 
                                             flag_addPersonIdentifier = await AddPersonIdentifier(personSession, Identifier, person);
-                                            flag_add_Email_and_Phone = await SetPersonExtraFieldValues(personSession, personData.Email, personData.Phone_number);
+
+                                            flag_add_Email_and_Phone = await SetPersonExtraFieldValues(personSession, personData.Email, personData.Phone_number,"С " + personData.Date_Start?.ToString("dd.MMMM.yyyy") + " по " + personData.Date_End?.ToString("dd.MMMM.yyyy"), personData.Who_invited);
                                             await SetIdentifierPrivileges(Session_ID, Identifier.CODE); // гостевая карта
                                             await ClosePersonEditingSession(personSession);
 
@@ -744,8 +747,9 @@ namespace ScriptQR
                         {
                             DateTime? startDate = null;
                             DateTime? endDate = null;
-                            string Email = null;
-                            string phone_number = null;
+                            bool problem_data = false;
+                            string email = "";
+                            string phone_number = "";
 
                             if (DateTime.TryParseExact(values[3], "dd.MM.yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime parsedStartDate))
                             {
@@ -757,20 +761,20 @@ namespace ScriptQR
                                 endDate = parsedEndDate;
                             }
 
-                            if (!String.IsNullOrEmpty(values[6]) )
-                            {
-                                if (IsValidEmail(values[6]) && DomainExists(values[6]))
-                                {
-                                    Email = values[6];
-                                }
-                               
-                            }
                             if (!String.IsNullOrEmpty(values[7]))
                             {
-                                phone_number = values[7];
+                                if (IsValidEmail(values[7]) && DomainExists(values[7]))
+                                {
+                                    email = values[7];
+                                }
+
+                            }
+                            if (!String.IsNullOrEmpty(values[8]))
+                            {
+                                if (IsValidPhoneNumber(values[8])) phone_number = values[8];
                             }
 
-
+                            if (values[0] == "" || values[1] == "" || values[5] == "" || values[6] == "" || phone_number == "" || email == "") problem_data = true;
 
                             var person = new PersonData
                             {
@@ -780,8 +784,10 @@ namespace ScriptQR
                                 Date_Start = startDate,
                                 Date_End = endDate,
                                 Purpose_Visit = values[5],
-                                Email = Email,
-                                Phone_number = phone_number
+                                Who_invited = values[6],
+                                Email = email,
+                                Phone_number = phone_number,
+                                Problem_data = problem_data
 
                             };
 
@@ -801,7 +807,7 @@ namespace ScriptQR
 
         public bool IsValidEmail(string email)
         {
-            string pattern = @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
+            string pattern = @"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$";
             return Regex.IsMatch(email, pattern);
         }
         public bool DomainExists(string email)
@@ -822,8 +828,16 @@ namespace ScriptQR
             }
         }
 
-        // Определяем, какой тип файла считывать
-        public async Task<List<PersonData>> ReadDataFromFileAsync(string filePath)
+
+        public bool IsValidPhoneNumber(string phoneNumber)
+        {
+            string pattern = @"^\+?[1-9]\d{1,14}$"; // Поддержка E.164 (международный формат)
+            return Regex.IsMatch(phoneNumber, pattern);
+        }
+
+
+    // Определяем, какой тип файла считывать
+    public async Task<List<PersonData>> ReadDataFromFileAsync(string filePath)
         {
             var extension = Path.GetExtension(filePath).ToLower();
             List<PersonData> personDataList = null;
@@ -881,9 +895,12 @@ namespace ScriptQR
             public DateTime? Date_Start { get; set; }
             public DateTime? Date_End { get; set; }
             public string Purpose_Visit { get; set; }
+            public string Who_invited { get; set; }
             public string? Email { get; set; }
             public string? Phone_number { get; set; }
             public bool IsSelected { get; set; }
+            public bool Problem_data {  get; set; }
+
         }
 
         public async Task<Guid> OpenSession()
@@ -1210,24 +1227,7 @@ namespace ScriptQR
                                 }
 
                             }
-                            else if (res_ExtraField_Email.Value == null || string.IsNullOrEmpty(res_ExtraField_Email.Value.ToString()))
-                            {
-                                Guid personSession = await OpenPersonEditingSession(Session_ID, person.ID);
-                                await SetPersonExtraFieldValues(personSession, Email, Phone);
-                                var update_identifier = new IdentifierTemp
-                                {
-                                    CODE = identifier_arr[0].CODE,
-                                    PERSON_ID = person.ID,
-                                    ACCGROUP_ID = Guid.Parse(Key_Access),
-                                    NAME = Purpose,
-                                    VALID_FROM = Start,
-                                    VALID_TO = End
-                                };
-
-                                await client.ChangePersonIdentifierAsync(personSession, update_identifier);
-                                await ClosePersonEditingSession(personSession);
-                                return update_identifier.CODE;
-                            }
+                            
                         }
 
                     }
@@ -1261,13 +1261,20 @@ namespace ScriptQR
                 {
                     foreach (var i in res)
                     {
-                        if (i.NAME == "Почта")
+                        switch (i.NAME)
                         {
-                            Email_column_ID = i.ID;
-                        }
-                        else if (i.NAME == "Телефон")
-                        {
-                            Phone_column_ID = i.ID;
+                            case "Почта":
+                                Email_column_ID = i.ID;
+                                break;
+                            case "Телефон":
+                                Phone_column_ID = i.ID;
+                                break;
+                            case "Пригласивший":
+                                Who_inveted_column_ID = i.ID;
+                                break;
+                            case "Даты начала и конца":
+                                Date_start_end_column_ID = i.ID;
+                                break;
                         }
                         //MessageBox.Show($"{i.NAME}:{i.ID}");
                     }
@@ -1283,13 +1290,13 @@ namespace ScriptQR
             }
         }
 
-        public async Task<bool> SetPersonExtraFieldValues(Guid person_session, string email,string phone)
+        public async Task<bool> SetPersonExtraFieldValues(Guid person_session, string email,string phone,string date_start_end, string who_invited)
         {
             try
             {
                 var client = new IntegrationServiceSoapClient();
 
-                ExtraFieldValue[] extra_field = new ExtraFieldValue[2];
+                ExtraFieldValue[] extra_field = new ExtraFieldValue[4];
                 extra_field[0] = new ExtraFieldValue(); 
                 extra_field[0].TEMPLATE_ID = Email_column_ID;
                 extra_field[0].VALUE = email;
@@ -1297,6 +1304,14 @@ namespace ScriptQR
                 extra_field[1] = new ExtraFieldValue();
                 extra_field[1].TEMPLATE_ID = Phone_column_ID;
                 extra_field[1].VALUE = phone;
+
+                extra_field[2] = new ExtraFieldValue();
+                extra_field[2].TEMPLATE_ID = Date_start_end_column_ID;
+                extra_field[2].VALUE = date_start_end;
+
+                extra_field[3] = new ExtraFieldValue();
+                extra_field[3].TEMPLATE_ID = Who_inveted_column_ID;
+                extra_field[3].VALUE = who_invited;
                 var result = await client.SetPersonExtraFieldValuesAsync(person_session, extra_field);
                 var res = result.Body.SetPersonExtraFieldValuesResult;
                 if (res.Result == 0)

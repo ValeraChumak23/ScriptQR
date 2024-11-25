@@ -6,6 +6,10 @@
              ShutdownMode="OnMainWindowClose">
     <Application.Resources>
         <ResourceDictionary>
+            <!-- Глобальный стиль для всех элементов с текстом -->
+            <Style TargetType="Control">
+                <Setter Property="FontSize" Value="12"/>
+            </Style>
             <!-- Другие ресурсы -->
             <Style TargetType="DatePicker">
                 <Setter Property="Template">

@@ -29,7 +29,7 @@ namespace ScriptQR
             KeyValues = new ObservableCollection<KeyValuePair<string, string>>();
             UpdateTextBlocks();
             SendCheckBox.IsChecked = flag_sending;
-            StatusTextBlock.Text = flag_sending ? "Отправка включена" : "Отправка отключена";
+            StatusTextBlock.Text = flag_sending ? "(Включена)" : "(Отключена)";
         }
 
         private void UpdateTextBlocks()
@@ -56,10 +56,10 @@ namespace ScriptQR
                 // Проверяем, какой пункт выбран
                 switch (selectedItem.Content.ToString())
                 {
-                    case "Ключи":
+                    case "Подразделение/Группа доступа":
                         KeysDataGrid.Visibility = Visibility.Visible;
                         break;
-                    case "Отправка":
+                    case "Отправка QR по почте":
                         SendPanel.Visibility = Visibility.Visible;
                         break;
                 }
@@ -183,13 +183,17 @@ namespace ScriptQR
         private void CheckBox_Checked(object sender, RoutedEventArgs e)
         {
             flag_sending = true;
-            StatusTextBlock.Text = "Отправка включена";
+            MainWindow.flag_send = flag_sending;
+            StatusTextBlock.Text = "(Включена)";
+            MainWindow.ModifyXmlFile(@"C:\ScriptQR\default_data.xml");
         }
 
         private void CheckBox_Unchecked(object sender, RoutedEventArgs e)
         {
             flag_sending = false;
-            StatusTextBlock.Text = "Отправка отключена";
+            MainWindow.flag_send = flag_sending;
+            StatusTextBlock.Text = "(Отключена)";
+            MainWindow.ModifyXmlFile(@"C:\ScriptQR\default_data.xml");
         }
     }
 }

@@ -21,14 +21,14 @@
                 <GridView>
                     <GridViewColumn Header="Номер" Width="50" DisplayMemberBinding="{Binding Number}" />
                     <GridViewColumn Header="Фио гостя" Width="250" DisplayMemberBinding="{Binding Name}" />
-                    <GridViewColumn Header="Статус гостя" Width="150">
+                    <GridViewColumn Header="Загрузка гостя" Width="150">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <Image Source="{Binding ImageStatusD}" Width="20" Height="20"/>
                             </DataTemplate>
                         </GridViewColumn.CellTemplate>
                     </GridViewColumn>
-                    <GridViewColumn Header="Наличие QR-кода" Width="150">
+                    <GridViewColumn Header="Создание QR-кода" Width="150">
                         <GridViewColumn.CellTemplate>
                             <DataTemplate>
                                 <Image Source="{Binding ImageStatusQ}" Width="20" Height="20"/>

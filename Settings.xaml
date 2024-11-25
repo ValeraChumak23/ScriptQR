@@ -5,18 +5,18 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ScriptQR"
         mc:Ignorable="d"
-        Title="Настройки" Height="250" Width="650"
+        Title="Настройки" Height="250" Width="660"
          ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen">
     <Grid Margin="0,0,0,-6">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="200"/> 
-            <ColumnDefinition Width="*"/>   
+            <ColumnDefinition Width="210"/>
+            <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <ListBox Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="180" Margin="10" SelectionChanged="ListBox_SelectionChanged">
-            <ListBoxItem Content="Ключи" />
-            <ListBoxItem Content="Отправка"/>
+        <ListBox Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="190" Margin="10,10,0,0" SelectionChanged="ListBox_SelectionChanged">
+            <ListBoxItem Content="Подразделение/Группа доступа" />
+            <ListBoxItem Content="Отправка QR по почте"/>
         </ListBox>
 
         <DataGrid x:Name="KeysDataGrid" AutoGenerateColumns="False" CanUserAddRows="False" Grid.Column="1" Visibility="Collapsed" >
