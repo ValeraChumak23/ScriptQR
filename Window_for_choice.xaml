@@ -20,7 +20,7 @@
 
         <!-- Панель для поиска, по умолчанию скрыта -->
         <StackPanel x:Name="SearchPanel" Orientation="Horizontal" 
-                    HorizontalAlignment="Right" Margin="0,5,0,10" Visibility="Collapsed">
+                    HorizontalAlignment="Right" Margin="0,5,0,10" >
             <TextBox x:Name="SearchTextBox"
                      Width="200"
                      Height="25"

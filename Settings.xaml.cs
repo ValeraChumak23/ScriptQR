@@ -133,7 +133,7 @@ namespace ScriptQR
                     else
                     {
                         await MainWindow.LogMessage($"Выбор не был сделан.", "system");
-                        MessageBox.Show("Выбор не был сделан.");
+                        //MessageBox.Show("Выбор не был сделан.");
                     }
                     MainWindow.ModifyXmlFile(@"C:\ScriptQR\default_data.xml");
                     await MainWindow.CloseSession();
@@ -168,7 +168,7 @@ namespace ScriptQR
                 else
                 {
                     await MainWindow.LogMessage($"Выбор не был сделан.", "system");
-                    MessageBox.Show("Выбор не был сделан.");
+                    //MessageBox.Show("Выбор не был сделан.");
                 }
 
                 MainWindow.ModifyXmlFile(@"C:\ScriptQR\default_data.xml");
@@ -195,5 +195,7 @@ namespace ScriptQR
             StatusTextBlock.Text = "(Отключена)";
             MainWindow.ModifyXmlFile(@"C:\ScriptQR\default_data.xml");
         }
+
+     
     }
 }

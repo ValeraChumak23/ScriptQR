@@ -28,7 +28,7 @@
             <TextBlock Text="Загрузить данные в ParsecNet 3" TextWrapping="Wrap" TextAlignment="Center"/>
         </Button>
         <TextBlock Name="SelectedFileText" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,365,0,0"/>
-        <DataGrid Name="PersonDataGrid" AutoGenerateColumns="False" Margin="0,57,10,124">
+        <DataGrid Name="PersonDataGrid" AutoGenerateColumns="False" Margin="0,57,10,124" HorizontalAlignment="Stretch" Width="Auto">
             <DataGrid.Columns>
                 <!-- Столбец для выбора всех элементов -->
                 <DataGridTemplateColumn Header="">
@@ -45,7 +45,7 @@
                 </DataGridTemplateColumn>
 
                 <!-- Фамилия -->
-                <DataGridTextColumn Header="Фамилия" Binding="{Binding LastName}">
+                <DataGridTextColumn Header="Фамилия" Binding="{Binding LastName}" Width="*">
                     <DataGridTextColumn.CellStyle>
                         <Style TargetType="DataGridCell">
                             <Style.Triggers>
@@ -58,7 +58,7 @@
                 </DataGridTextColumn>
 
                 <!-- Имя -->
-                <DataGridTextColumn Header="Имя" Binding="{Binding FirstName}">
+                <DataGridTextColumn Header="Имя" Binding="{Binding FirstName}" Width="*">
                     <DataGridTextColumn.CellStyle>
                         <Style TargetType="DataGridCell">
                             <Style.Triggers>
@@ -71,16 +71,16 @@
                 </DataGridTextColumn>
 
                 <!-- Отчество (не применяется стиль) -->
-                <DataGridTextColumn Header="Отчество" Binding="{Binding MiddleName}"/>
+                <DataGridTextColumn Header="Отчество" Binding="{Binding MiddleName}" Width="*"/>
 
                 <!-- Дата начала визита (не применяется стиль) -->
-                <DataGridTextColumn Header="Дата начала визита" Binding="{Binding Date_Start,StringFormat= dd MMMM yyyy}"/>
+                <DataGridTextColumn Header="Дата начала визита" Binding="{Binding Date_Start,StringFormat= dd MMMM yyyy}" Width="*"/>
 
                 <!-- Дата конца визита (не применяется стиль) -->
-                <DataGridTextColumn Header="Дата конца визита" Binding="{Binding Date_End,StringFormat= dd MMMM yyyy}"/>
+                <DataGridTextColumn Header="Дата конца визита" Binding="{Binding Date_End,StringFormat= dd MMMM yyyy}" Width="*"/>
 
                 <!-- Цель визита -->
-                <DataGridTextColumn Header="Цель визита" Binding="{Binding Purpose_Visit}">
+                <DataGridTextColumn Header="Цель визита" Binding="{Binding Purpose_Visit}" Width="*">
                     <DataGridTextColumn.CellStyle>
                         <Style TargetType="DataGridCell">
                             <Style.Triggers>
@@ -93,11 +93,11 @@
                 </DataGridTextColumn>
 
                 <!-- Пригласивший -->
-                <DataGridTextColumn Header="Пригласивший" Binding="{Binding One_who_invited}">
+                <DataGridTextColumn Header="Пригласивший" Binding="{Binding Who_invited}" Width="*">
                     <DataGridTextColumn.CellStyle>
                         <Style TargetType="DataGridCell">
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding One_who_invited}" Value="">
+                                <DataTrigger Binding="{Binding Who_invited}" Value="">
                                     <Setter Property="Background" Value="LightCoral"/>
                                 </DataTrigger>
                             </Style.Triggers>
@@ -106,7 +106,7 @@
                 </DataGridTextColumn>
 
                 <!-- Почта -->
-                <DataGridTextColumn Header="Почта" Binding="{Binding Email}">
+                <DataGridTextColumn Header="Почта" Binding="{Binding Email}" Width="*">
                     <DataGridTextColumn.CellStyle>
                         <Style TargetType="DataGridCell">
                             <Style.Triggers>
@@ -119,7 +119,7 @@
                 </DataGridTextColumn>
 
                 <!-- Номер телефона -->
-                <DataGridTextColumn Header="Номер телефона" Binding="{Binding Phone_number}">
+                <DataGridTextColumn Header="Номер телефона" Binding="{Binding Phone_number}" Width="*">
                     <DataGridTextColumn.CellStyle>
                         <Style TargetType="DataGridCell">
                             <Style.Triggers>

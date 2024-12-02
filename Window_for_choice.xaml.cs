@@ -24,7 +24,7 @@ namespace ScriptQR
         public Window_for_choice(OrgUnit[] OrgUnit_arr)
         {
             InitializeComponent();
-            this.KeyDown += Window_for_choice_KeyDown;
+            //this.KeyDown += Window_for_choice_KeyDown;
             PopulateList(OrgUnit_arr);
             this.Left = App.WindowLeft;
             this.Top = App.WindowTop;
@@ -34,7 +34,7 @@ namespace ScriptQR
         public Window_for_choice(AccessGroup[] AccessGroup_arr)
         {
             InitializeComponent();
-            this.KeyDown += Window_for_choice_KeyDown;
+            //this.KeyDown += Window_for_choice_KeyDown;
             PopulateList(AccessGroup_arr);
             this.Left = App.WindowLeft;
             this.Top = App.WindowTop;
@@ -122,7 +122,8 @@ namespace ScriptQR
                 FoundItemsLabel.Content = $"Найдено: {Unit_list.Count}";
             }
         }
-
+        /*
+        Visibility="Collapsed" - добавить в  Stackpanel Textbox который будет всплывать при нажатии ctr + f
         private void Window_for_choice_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control)
@@ -142,5 +143,6 @@ namespace ScriptQR
                 SearchPanel.Visibility = Visibility.Collapsed;
             }
         }
+        */
     }
 }

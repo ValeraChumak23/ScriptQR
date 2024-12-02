@@ -26,6 +26,7 @@ using System.Text.RegularExpressions;
 using System.Net.Sockets;
 using Microsoft.Xaml.Behaviors.Layout;
 using System.Reflection;
+using System.Data;
 
 namespace ScriptQR
 {
@@ -33,6 +34,8 @@ namespace ScriptQR
     {
         public List<PersonData> personDataList;
         public List<PersonData> faild_dounload_personDataList;
+        public List<Person> List_people_from_didvision;
+
         public int count_person = 0;
         public int count_null_date = 0;
         private static readonly Dictionary<string, bool> domainCache = new Dictionary<string, bool>();
@@ -47,6 +50,7 @@ namespace ScriptQR
         public string FilePath_Doc = null;
         public string FilePath_log = null;
         public string FilePath_not_uploaded = null;
+        public string FilePath_list_delete_people = null;
         public string FilePath_directory = null;
         public string FilePath_Icon = null;
 
@@ -58,6 +62,7 @@ namespace ScriptQR
         public Guid Phone_column_ID = Guid.Empty;
         public Guid Date_start_end_column_ID = Guid.Empty;
         public Guid Who_inveted_column_ID = Guid.Empty;
+        public Guid Method_entry_column_ID = Guid.Empty;
 
         public string Name_Access;
         public string Key_Access;
@@ -100,7 +105,9 @@ namespace ScriptQR
                 FilePath_log = Path.Combine(FilePath_Doc, "Generate_Visitor_Qr_Code_logfile.txt");
 
                 FilePath_not_uploaded = Path.Combine(FilePath_Doc, "Not_uploaded_people.txt");
- 
+
+                FilePath_list_delete_people = Path.Combine(FilePath_Doc, "List_delete_people.txt");
+
                 personDataList = new List<PersonData>();
 
                 LoadingProgressBar.Visibility = Visibility.Collapsed;
@@ -172,6 +179,10 @@ namespace ScriptQR
                 case ("people"):
                     FilePath = FilePath_not_uploaded;
                 break;
+
+                case ("delete_people"):
+                    FilePath = FilePath_list_delete_people;
+                    break;
             }
                 
             // Проверка и создание файла, если его нет
@@ -342,31 +353,33 @@ namespace ScriptQR
         {
             await LogMessage($"Нажата клавиша загрузка данных.", "system");
 
-            if (personDataList.All(p => p.Date_Start != null || p.Date_End != null)) {
+            if (personDataList.All(p => p.Date_Start != null || p.Date_End != null) && personDataList.All(p => p.Problem_data != true)) {
 
                 Stopwatch clock_Dounload = new Stopwatch();
 
                 System.Windows.Controls.Button loadButton = sender as System.Windows.Controls.Button;
                 loadButton.IsEnabled = false;
-                count_person = (personDataList.Count != 0) ? personDataList.Count : 0;
+                count_person = personDataList.Count(); 
 
                 faild_dounload_personDataList = new List<PersonData>();
-                
 
                 Session_ID = await OpenSession();
+
                 if (Session_ID != Guid.Empty)
                 {
                     await LogMessage($"Сессия успешно открыта для пользователя с именем:{UserName}","system");
-                    await LogMessage($"Получение ключей для полей Почта и Номер телефона.", "system");
+                    await LogMessage($"Получение ID для дополнительных полей.", "system");
                     await GetVisitorExtraFieldTemplates(Session_ID);
+
                     var res = new Result(count_person.ToString());
                     res.Show();
+
                     loadButton.IsEnabled = true;
 
+                    // Получение списка людей из подразделения
+                    await Getting_list_people_from_division();
+
                     clock_Dounload.Start();
-
-
-
                     if (Email_column_ID != Guid.Empty && Phone_column_ID != Guid.Empty)
                     {
                         var semaphore = new SemaphoreSlim(10);
@@ -386,6 +399,10 @@ namespace ScriptQR
                                 try
                                 {
 
+                                    // Проверка наличия персоны в списке людей из подразделения, с последующими условиями
+                                    if (List_people_from_didvision.Count() > 0) await Checking_availability_deletion(personData.LastName, personData.FirstName, personData.MiddleName);
+
+
                                     string FIO = personData.LastName + " " + personData.FirstName + " " + personData.MiddleName;
                                     int num = 0;
 
@@ -402,114 +419,94 @@ namespace ScriptQR
                                         await LogMessage($"{FIO}", "people");
                                     }
 
-                                    // доработка необходимо проверять наличие человека в подразделении
-                                    string identificator_existing_person = await presence_People_of_List(personData.LastName, personData.FirstName, personData.MiddleName, personData.Email, personData.Phone_number, (DateTime)personData.Date_Start, (DateTime)personData.Date_End, personData.Purpose_Visit);
+                                    await LogMessage($"Создание гостя ФИО: {personData.LastName} {personData.FirstName} {personData.MiddleName}","system");
+                                    bool flag_createVisitor = false;
+                                    bool flag_addPersonIdentifier = false;
+                                    bool flag_add_Email_and_Phone = false;
+                                    bool flag_generatePhotoQR = false;
+                                    bool flag_SendPhotoQR = false;
+                                    bool flag_dounload = false;
 
-                                    if (identificator_existing_person == "")
+
+
+                                    var person = new Person
+                                    {
+                                        ID = Guid.NewGuid(),
+                                        FIRST_NAME = personData.FirstName,
+                                        LAST_NAME = personData.LastName,
+                                        MIDDLE_NAME = personData.MiddleName,
+                                        ORG_ID = Guid.Parse(Key_Division)  // ключ подразделение для Гостей
+                                    };
+
+                                    Guid visitorID = await CreateVisitor(Session_ID, person);
+
+                                    if (visitorID != Guid.Empty)
                                     {
 
-                                        await LogMessage($"Создание гостя ФИО: {personData.LastName} {personData.FirstName} {personData.MiddleName}","system");
-                                        bool flag_createVisitor = false;
-                                        bool flag_addPersonIdentifier = false;
-                                        bool flag_add_Email_and_Phone = false;
-                                        bool flag_generatePhotoQR = false;
-                                        bool flag_SendPhotoQR = false;
-                                        bool flag_dounload = false;
+                                        flag_createVisitor = true;
+                                        string Identificator = await GetUnique4bCardCode(Session_ID, person);
+                                        Guid personSession = await OpenPersonEditingSession(Session_ID, visitorID);
 
-
-
-                                        var person = new Person
+                                        var Identifier = new IdentifierTemp
                                         {
-                                            ID = Guid.NewGuid(),
-                                            FIRST_NAME = personData.FirstName,
-                                            LAST_NAME = personData.LastName,
-                                            MIDDLE_NAME = personData.MiddleName,
-                                            ORG_ID = Guid.Parse(Key_Division)  // ключ подразделение для Гостей
+                                            CODE = Identificator,
+                                            PERSON_ID = person.ID,
+                                            ACCGROUP_ID = Guid.Parse(Key_Access), // ключ группы доступа
+                                            IDENTIFTYPE = 0,
+                                            NAME = personData.Purpose_Visit,
+                                            VALID_FROM = (DateTime)personData.Date_Start,
+                                            VALID_TO = (DateTime)personData.Date_End,
                                         };
 
-                                        Guid visitorID = await CreateVisitor(Session_ID, person);
+                                        flag_addPersonIdentifier = await AddPersonIdentifier(personSession, Identifier, person);
 
-                                        if (visitorID != Guid.Empty)
+                                        flag_add_Email_and_Phone = await SetPersonExtraFieldValues(personSession, personData.Email, personData.Phone_number,"С " + personData.Date_Start?.ToString("dd.MMMM.yyyy") + " по " + personData.Date_End?.ToString("dd.MMMM.yyyy"), personData.Who_invited);
+                                        await SetIdentifierPrivileges(Session_ID, Identifier.CODE); // гостевая карта
+                                        await ClosePersonEditingSession(personSession);
+
+
+                                        if (flag_createVisitor == true && flag_addPersonIdentifier == true)
                                         {
+                                            flag_dounload = true;
 
-                                            flag_createVisitor = true;
-                                            string Identificator = await GetUnique4bCardCode(Session_ID, person);
-                                            Guid personSession = await OpenPersonEditingSession(Session_ID, visitorID);
-
-                                            var Identifier = new IdentifierTemp
+                                            await Application.Current.Dispatcher.InvokeAsync(() =>
                                             {
-                                                CODE = Identificator,
-                                                PERSON_ID = person.ID,
-                                                ACCGROUP_ID = Guid.Parse(Key_Access), // ключ группы доступа
-                                                IDENTIFTYPE = 0,
-                                                NAME = personData.Purpose_Visit,
-                                                VALID_FROM = (DateTime)personData.Date_Start,
-                                                VALID_TO = (DateTime)personData.Date_End,
-                                            };
+                                                res.UpdatePerson(num, flag_dounload.ToString(), "Ожидание", "Ожидание");
+                                            });
 
-                                            flag_addPersonIdentifier = await AddPersonIdentifier(personSession, Identifier, person);
+                                            var Qr_code_text = await GenerateParsecQRCode(Session_ID, Identifier.CODE, personData.LastName, personData.FirstName, personData.MiddleName);
 
-                                            flag_add_Email_and_Phone = await SetPersonExtraFieldValues(personSession, personData.Email, personData.Phone_number,"С " + personData.Date_Start?.ToString("dd.MMMM.yyyy") + " по " + personData.Date_End?.ToString("dd.MMMM.yyyy"), personData.Who_invited);
-                                            await SetIdentifierPrivileges(Session_ID, Identifier.CODE); // гостевая карта
-                                            await ClosePersonEditingSession(personSession);
-
-
-                                            if (flag_createVisitor == true && flag_addPersonIdentifier == true)
+                                            if (Qr_code_text != "")
                                             {
-                                                flag_dounload = true;
 
-                                                await Application.Current.Dispatcher.InvokeAsync(() =>
+                                                flag_generatePhotoQR = await GeneratePhotoQR(Qr_code_text, personData.LastName, personData.FirstName, personData.MiddleName, FilePath_Doc);
+
+                                                if (flag_generatePhotoQR && has_in_list_faild_dounload == false)
                                                 {
-                                                    res.UpdatePerson(num, flag_dounload.ToString(), "Ожидание", "Ожидание");
-                                                });
-
-                                                var Qr_code_text = await GenerateParsecQRCode(Session_ID, Identifier.CODE, personData.LastName, personData.FirstName, personData.MiddleName);
-
-                                                if (Qr_code_text != "")
-                                                {
-
-                                                    flag_generatePhotoQR = await GeneratePhotoQR(Qr_code_text, personData.LastName, personData.FirstName, personData.MiddleName, FilePath_Doc);
-
-                                                    if (flag_generatePhotoQR && has_in_list_faild_dounload == false)
+                                                    await Application.Current.Dispatcher.InvokeAsync(() =>
                                                     {
-                                                        await Application.Current.Dispatcher.InvokeAsync(() =>
-                                                        {
-                                                            res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), "Ожидание");
-                                                        });
+                                                        res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), "Ожидание");
+                                                    });
 
 
-                                                        if (flag_send)
-                                                        {
-                                                            flag_SendPhotoQR = await SendEmailsAsync(personData.Email, FilePath_Doc, personData.Purpose_Visit, FIO, (personData.Date_Start).ToString(), (personData.Date_End).ToString());
-                                                            if (!flag_SendPhotoQR) faild_dounload_personDataList.Add(personData);
-                                                        }
-
-                                                        await Application.Current.Dispatcher.InvokeAsync(() =>
-                                                        {
-                                                            res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
-                                                        });
-                                                    }
-                                                    else
+                                                    if (flag_send)
                                                     {
-                                                        await Application.Current.Dispatcher.InvokeAsync(() =>
-                                                        {
-                                                            res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
-                                                        });
+                                                        flag_SendPhotoQR = await SendEmailsAsync(personData.Email, FilePath_Doc, personData.Purpose_Visit, FIO, (personData.Date_Start).ToString(), (personData.Date_End).ToString());
+                                                        if (!flag_SendPhotoQR) faild_dounload_personDataList.Add(personData);
                                                     }
+
+                                                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                                                    {
+                                                        res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
+                                                    });
                                                 }
-                                            }
-                                            else
-                                            {
-                                                if (has_in_list_faild_dounload == false)
+                                                else
                                                 {
-                                                    faild_dounload_personDataList.Add(personData);
-                                                    has_in_list_faild_dounload = true;
-                                                    await LogMessage($"{FIO}", "people");
+                                                    await Application.Current.Dispatcher.InvokeAsync(() =>
+                                                    {
+                                                        res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
+                                                    });
                                                 }
-                                                await Application.Current.Dispatcher.InvokeAsync(() =>
-                                                {
-                                                    res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
-                                                });
                                             }
                                         }
                                         else
@@ -525,57 +522,19 @@ namespace ScriptQR
                                                 res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
                                             });
                                         }
-
-
                                     }
-
-                                       
-                                    else // Обновление происходит в том случае если есть почта и человек есть в базе
+                                    else
                                     {
-                                        await LogMessage($"Обновление гостя ФИО: {personData.LastName} {personData.FirstName} {personData.MiddleName}", "system");
-                                        bool flag_generatePhotoQR = false;
-                                        bool flag_SendPhotoQR = false;
+                                        if (has_in_list_faild_dounload == false)
+                                        {
+                                            faild_dounload_personDataList.Add(personData);
+                                            has_in_list_faild_dounload = true;
+                                            await LogMessage($"{FIO}", "people");
+                                        }
                                         await Application.Current.Dispatcher.InvokeAsync(() =>
                                         {
-                                            res.UpdatePerson(num, "Обновлен успешно", "Ожидание", "Ожидание");
+                                            res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
                                         });
-
-                                        var Qr_code_text = await GenerateParsecQRCode(Session_ID, identificator_existing_person, personData.LastName, personData.FirstName, personData.MiddleName);
-                                        if (Qr_code_text != "")
-                                        {
-                                            flag_generatePhotoQR = await GeneratePhotoQR(Qr_code_text, personData.LastName, personData.FirstName, personData.MiddleName, FilePath_Doc);
-                                            if (flag_generatePhotoQR && has_in_list_faild_dounload == true)
-                                            {
-                                                await Application.Current.Dispatcher.InvokeAsync(() =>
-                                                {
-                                                    res.UpdatePerson(num, "Обновлен успешно", flag_generatePhotoQR.ToString(), "Ожидание");
-                                                });
-                                                if (flag_send)
-                                                {
-                                                    flag_SendPhotoQR = await SendEmailsAsync(personData.Email, FilePath_Doc, personData.Purpose_Visit, FIO, (personData.Date_Start).ToString(), (personData.Date_End).ToString());
-                                                    if (!flag_SendPhotoQR) faild_dounload_personDataList.Add(personData);
-                                                }
-                                                await Application.Current.Dispatcher.InvokeAsync(() =>
-                                                {
-                                                    res.UpdatePerson(num, "Обновлен успешно", flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
-                                                });
-                                                    
-                                            }
-                                            else
-                                            {
-                                                await Application.Current.Dispatcher.InvokeAsync(() =>
-                                                {
-                                                    res.UpdatePerson(num, "Обновлен успешно", flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
-                                                });
-                                            }
-                                        }
-                                        else
-                                        {
-                                            await Application.Current.Dispatcher.InvokeAsync(() =>
-                                            {
-                                                res.UpdatePerson(num, "Обновлен успешно", (false).ToString(), (false).ToString());
-                                            });
-                                        }
                                     }
                                     
                                 }
@@ -611,11 +570,9 @@ namespace ScriptQR
             }
             else
             {
-                MessageBox.Show("Есть гости для которых не проставлены даты!", "Ошибка загрузки", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Есть гости для, которых есть проблемы с данными!", "Ошибка загрузки", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
-
-       
 
         public async Task<bool> SendEmailsAsync(string email,string documentsPath, string Personevent,string FIO, string Start, string End)
         {
@@ -771,7 +728,7 @@ namespace ScriptQR
                             }
                             if (!String.IsNullOrEmpty(values[8]))
                             {
-                                if (IsValidPhoneNumber(values[8])) phone_number = values[8];
+                                if (IsValidPhoneNumber(values[8]) && IsLengthValid(values[8])) phone_number = values[8];
                             }
 
                             if (values[0] == "" || values[1] == "" || values[5] == "" || values[6] == "" || phone_number == "" || email == "") problem_data = true;
@@ -810,6 +767,7 @@ namespace ScriptQR
             string pattern = @"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$";
             return Regex.IsMatch(email, pattern);
         }
+
         public bool DomainExists(string email)
         {
             string domain = email.Substring(email.IndexOf('@') + 1);
@@ -817,27 +775,34 @@ namespace ScriptQR
             {
                 return exists;
             }
+
             try
             {
                 var hostEntry = Dns.GetHostEntry(domain);
-                return hostEntry != null;
+                domainCache[domain] = true;
+                return true;
             }
             catch (SocketException)
             {
+                domainCache[domain] = false;
                 return false;
             }
         }
 
 
         public bool IsValidPhoneNumber(string phoneNumber)
-        {
-            string pattern = @"^\+?[1-9]\d{1,14}$"; // Поддержка E.164 (международный формат)
+        {            
+            string pattern = @"^(\+?[1-9]\d{1,14})$"; // Поддержка E.164 (международный формат)
             return Regex.IsMatch(phoneNumber, pattern);
         }
+        public static bool IsLengthValid(string phoneNumber)
+        {
+            string normalizedNumber = Regex.Replace(phoneNumber, @"[^\d]", "");
+            return normalizedNumber.Length <= 11;
+        }
 
-
-    // Определяем, какой тип файла считывать
-    public async Task<List<PersonData>> ReadDataFromFileAsync(string filePath)
+        // Определяем, какой тип файла считывать
+        public async Task<List<PersonData>> ReadDataFromFileAsync(string filePath)
         {
             var extension = Path.GetExtension(filePath).ToLower();
             List<PersonData> personDataList = null;
@@ -1179,76 +1144,85 @@ namespace ScriptQR
             }
         }
 
-        public async Task<string> presence_People_of_List(string LastName, string FirstName, string MidleName,string Email,string Phone,DateTime Start, DateTime End,string Purpose)
+        public async Task Getting_list_people_from_division()
         {
-            try
+            try 
             {
                 var client = new IntegrationServiceSoapClient();
-                var result = await client.FindVisitorsAsync(Session_ID,LastName,FirstName,MidleName);
-                var res = result.Body.FindVisitorsResult;
+                object value = Name_Division;
+                object value1 = null;
+                var answer = await client.PersonSearchAsync(Session_ID,Guid.Parse("0de358e0-c91b-4333-b902-000000000004"),0, value, value1);
+                var res = answer.Body.PersonSearchResult;
                 if (res != null)
                 {
-                    //MessageBox.Show("Человек найден");
-                    foreach (var person in res)
-                    { 
-                        var result_ExtraField_Email = await client.GetPersonExtraFieldValueAsync(Session_ID, person.ID, Email_column_ID);
-                        var res_ExtraField_Email = result_ExtraField_Email.Body.GetPersonExtraFieldValueResult;
-
-                        //var result_ExtraField_Phone = await client.GetPersonExtraFieldValueAsync(Session_ID, person.ID, Phone_column_ID);
-                        //var res_ExtraField_Phone = result_ExtraField_Phone.Body.GetPersonExtraFieldValueResult;
-
-                        if (res_ExtraField_Email.Result == 0)
-                        {
-                            var identifier_arr = (await client.GetPersonIdentifiersAsync(Session_ID, person.ID)).Body.GetPersonIdentifiersResult;
-                            
-                            if (res_ExtraField_Email.Value != null && res_ExtraField_Email.Value.ToString().Equals(Email))
-                            {                                
-                                var update_identifier = new IdentifierTemp
-                                {
-                                    CODE = identifier_arr[0].CODE,
-                                    PERSON_ID = person.ID,
-                                    ACCGROUP_ID = Guid.Parse(Key_Access),
-                                    NAME = Purpose,
-                                    VALID_FROM = Start,
-                                    VALID_TO = End
-                                };
-                                Guid personSession = await OpenPersonEditingSession(Session_ID, person.ID);
-                                var result_update = await client.ChangePersonIdentifierAsync(personSession, update_identifier);
-                                var res_up = result_update.Body.ChangePersonIdentifierResult;
-                                if (res_up.Result == 0)
-                                {
-                                    await ClosePersonEditingSession(personSession);
-                                    return update_identifier.CODE;
-                                }
-                                else
-                                {
-                                    MessageBox.Show($"{res_up.ErrorMessage}");
-                                    return "";
-                                }
-
-                            }
-                            
-                        }
-
-                    }
-                    return "";
-                }
-                else
-                {
-                    return "";
+                    List_people_from_didvision = new List<Person>();
+                    List_people_from_didvision = res.ToList<Person>();
                 }
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Произошла ошибка при получении организационных единиц с посетителями: {ex.Message}");
-                return "";
+                
             }
 
         }
 
-       
+        public async Task Checking_availability_deletion(string Lastname, string Firstname,string Middlename)
+        {
+            try
+            {
+                //await LogMessage($"запуск алгоритма", "delete_people");
+                var check_availability = (from p in List_people_from_didvision where p.LAST_NAME == Lastname && p.FIRST_NAME == Firstname && p.MIDDLE_NAME == Middlename select new Person {ID = p.ID, LAST_NAME = p.LAST_NAME, FIRST_NAME = p.FIRST_NAME, MIDDLE_NAME = p.MIDDLE_NAME}).FirstOrDefault();
+                if (check_availability != null)
+                {
+                    string FIO = $"{check_availability.LAST_NAME} {check_availability.FIRST_NAME} {check_availability.MIDDLE_NAME}";
+                    await LogMessage($"{FIO} найден", "delete_people");
+                    var client = new IntegrationServiceSoapClient();
+                    var answer = await client.GetPersonExtraFieldValuesAsync(Session_ID, check_availability.ID);
+                    var res = answer.Body.GetPersonExtraFieldValuesResult;
+                    // res.All(p => p.TEMPLATE_ID == Method_entry_column_ID && p.VALUE.ToString() == "Программно" && p.TEMPLATE_ID == Date_start_end_column_ID && DateTime.TryParse(((p.VALUE.ToString()).Split(' '))[3], out DateTime parsedDate) && parsedDate <= now)
+                    /*
+                    bool check_metod = false, check_date = false;
 
-        
+                    foreach (var i in res)
+                    {
+                        if (i.TEMPLATE_ID == Method_entry_column_ID && i.VALUE.ToString() == "Программно") check_metod = true;
+                        if (i.TEMPLATE_ID == Date_start_end_column_ID  && Convert.ToDateTime(((i.VALUE.ToString()).Split(' '))[3]).Date <= DateTime.Now.Date) check_date = true;
+                    }
+                    */
+                    bool check_metod = res.Any(i => i.TEMPLATE_ID == Method_entry_column_ID && i.VALUE.ToString() == "Программно");
+
+                    // Проверяем, что дата не превышает текущую дату для Date_start_end_column_ID
+                    bool check_date = res.Any(i =>
+                        i.TEMPLATE_ID == Date_start_end_column_ID &&
+                        DateTime.TryParse(((i.VALUE.ToString()).Split(' '))[3], out DateTime parsedDate) &&
+                        parsedDate.Date <= DateTime.Now.Date);
+                    if (check_metod && check_date)
+                    {
+                        //MessageBox.Show($"Можно удалять");
+                        var delete_person = await client.DeletePersonAsync(Session_ID, check_availability.ID);
+                        var res_delete = delete_person.Body.DeletePersonResult;
+                        if (res_delete.Result == 0)
+                        {
+                            // запись данных в основной лог файл и лог с Фио удаленных
+                        }
+                        else
+                        {
+                            // запись в основной лог об ошибке с кодом ошибки 
+                        }
+                        
+                    }
+
+
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Произошла ошибка при получении организационных единиц с посетителями: {ex.Message}");
+
+            }
+
+        }
 
         public async Task GetVisitorExtraFieldTemplates(Guid sessionID)
         {
@@ -1275,6 +1249,9 @@ namespace ScriptQR
                             case "Даты начала и конца":
                                 Date_start_end_column_ID = i.ID;
                                 break;
+                            case "Способ занесения":
+                                Method_entry_column_ID = i.ID;
+                                break;
                         }
                         //MessageBox.Show($"{i.NAME}:{i.ID}");
                     }
@@ -1296,7 +1273,7 @@ namespace ScriptQR
             {
                 var client = new IntegrationServiceSoapClient();
 
-                ExtraFieldValue[] extra_field = new ExtraFieldValue[4];
+                ExtraFieldValue[] extra_field = new ExtraFieldValue[5];
                 extra_field[0] = new ExtraFieldValue(); 
                 extra_field[0].TEMPLATE_ID = Email_column_ID;
                 extra_field[0].VALUE = email;
@@ -1312,6 +1289,11 @@ namespace ScriptQR
                 extra_field[3] = new ExtraFieldValue();
                 extra_field[3].TEMPLATE_ID = Who_inveted_column_ID;
                 extra_field[3].VALUE = who_invited;
+
+                extra_field[4] = new ExtraFieldValue();
+                extra_field[4].TEMPLATE_ID = Method_entry_column_ID;
+                extra_field[4].VALUE = "Программно";
+
                 var result = await client.SetPersonExtraFieldValuesAsync(person_session, extra_field);
                 var res = result.Body.SetPersonExtraFieldValuesResult;
                 if (res.Result == 0)

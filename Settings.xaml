@@ -10,20 +10,20 @@
         WindowStartupLocation="CenterScreen">
     <Grid Margin="0,0,0,-6">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="210"/>
-            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="197"/>
+            <ColumnDefinition/>
         </Grid.ColumnDefinitions>
 
-        <ListBox Grid.Column="0" HorizontalAlignment="Left" VerticalAlignment="Top" Width="190" Margin="10,10,0,0" SelectionChanged="ListBox_SelectionChanged">
+        <ListBox HorizontalAlignment="Center" VerticalAlignment="Top" Width="197" Margin="0,10,0,0" SelectionChanged="ListBox_SelectionChanged" Height="44">
             <ListBoxItem Content="Подразделение/Группа доступа" />
             <ListBoxItem Content="Отправка QR по почте"/>
         </ListBox>
 
-        <DataGrid x:Name="KeysDataGrid" AutoGenerateColumns="False" CanUserAddRows="False" Grid.Column="1" Visibility="Collapsed" >
+        <DataGrid x:Name="KeysDataGrid" AutoGenerateColumns="False" HorizontalAlignment="Stretch" CanUserAddRows="False" Width="Auto" Grid.Column="1" Visibility="Collapsed" >
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Название" Binding="{Binding Key}" Width="150" />
-                <DataGridTextColumn Header="Значение" Binding="{Binding Value}" Width="210" />
-                <DataGridTemplateColumn Header="Изменить">
+                <DataGridTextColumn Header="Название" Binding="{Binding Key}" Width="*" />
+                <DataGridTextColumn Header="Значение" Binding="{Binding Value}" Width="2*" />
+                <DataGridTemplateColumn Header="Изменить" Width="*">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <Button Content="Изменить" Click="EditKey_Click"/>
