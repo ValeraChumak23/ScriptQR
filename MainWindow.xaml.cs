@@ -32,7 +32,6 @@ namespace ScriptQR
 {
     public partial class MainWindow : Window
     {
-        // локальные переменные необходимые дл работы
         public List<PersonData> personDataList;
         public List<PersonData> faild_dounload_personDataList;
         public List<Person> List_people_from_didvision;
