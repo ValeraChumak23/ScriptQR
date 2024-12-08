@@ -28,7 +28,7 @@
             <TextBlock Text="Загрузить данные в ParsecNet 3" TextWrapping="Wrap" TextAlignment="Center"/>
         </Button>
         <TextBlock Name="SelectedFileText" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,365,0,0"/>
-        <DataGrid Name="PersonDataGrid" AutoGenerateColumns="False" Margin="0,57,10,124" HorizontalAlignment="Stretch" Width="Auto">
+        <DataGrid Name="PersonDataGrid" AutoGenerateColumns="False" Margin="0,57,10,124" HorizontalAlignment="Stretch" Width="Auto" CellEditEnding="PersonDataGrid_CellEditEnding">
             <DataGrid.Columns>
                 <!-- Столбец для выбора всех элементов -->
                 <DataGridTemplateColumn Header="">

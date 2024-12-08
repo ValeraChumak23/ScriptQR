@@ -92,6 +92,8 @@ namespace ScriptQR
             await authorization();
             if (flag_autorization)
             {
+                PersonDataGrid.ItemsSource = personDataList;
+
                 ReadXmlFile(@"C:\ScriptQR\default_data.xml");
 
                 FilePath_directory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -218,10 +220,6 @@ namespace ScriptQR
             }
         }
 
-
-
-
-
         private void Date_windows(object sender, RoutedEventArgs e)
         {
             var datePickerWindow = new DatePickerWindow();
@@ -307,10 +305,89 @@ namespace ScriptQR
                 }
                 personDataList[i] = person; // Обновляем элемент в коллекции
             }
-
+          
             PersonDataGrid.Items.Refresh();
         }
 
+        // МАКСИМАЛЬНО кривой способ обновления и сохранени измененных данных в DataGrid.Column (прям пиздец)
+        // Если вы не тот кто это разрабатывал, то не смотрите на это (ну или не сильно ругайтесь, т.к. логики максимально кривая и не продуманная)
+        // я опишу наверное как нодо было это все реализовывать, но не факт что оно верно 
+        // вмество структуры надо было использовать ObservableCollection: если ваша коллекция данных реализует интерфейс INotifyCollectionChanged
+        // если этот кривой косой код, будет испольковаться дальше то это будет *****
+
+        public void PersonDataGrid_CellEditEnding(object sender, DataGridCellEditEndingEventArgs e)
+        {
+            // е - объект класса DataGridCellEditEndingEventArgs который используется в обработчиках событий для события CellEditEnding
+            // Проверяем, что действие редактирования - это завершение
+            if (e.EditAction == DataGridEditAction.Commit)
+            {
+                // создание екземпляра хранящего старые записи о человекк
+                var editedPerson = (PersonData)e.Row.Item;
+                var textBox = e.EditingElement as System.Windows.Controls.TextBox; 
+                // старые данные для поиска человека в списке
+                string oldLastName = editedPerson.LastName;
+                string oldFirstName = editedPerson.FirstName;
+                string oldMiddleName = editedPerson.MiddleName;
+                // вносим изменения
+                if (textBox != null)
+                {
+                    string columnName = e.Column.Header.ToString();
+                    switch (columnName)
+                    {
+                        case "Фамилия":
+                            editedPerson.LastName = textBox.Text;
+                            break;
+                        case "Имя":
+                            editedPerson.FirstName = textBox.Text;
+                            break;
+                        case "Отчество":
+                            editedPerson.MiddleName = textBox.Text;
+                            break;
+                        case "Цель визита":
+                            editedPerson.Purpose_Visit = textBox.Text;
+                            break;
+                        case "Пригласивший":
+                            editedPerson.Who_invited = textBox.Text;
+                            break;
+                        case "Почта":
+                            editedPerson.Email = textBox.Text;
+                            break;
+                        case "Номер телефона":
+                            editedPerson.Phone_number = textBox.Text;
+                            break;
+                    }
+                }
+                
+
+                // Находим индекс по старым значениям
+                int index = personDataList.FindIndex(p =>
+                    p.LastName == oldLastName &&
+                    p.FirstName == oldFirstName && 
+                    p.MiddleName == oldMiddleName); 
+
+                if (index >= 0)
+                {
+                    // добавить проверки на телефон если тот менялся и почту
+                    if (editedPerson.LastName != "" &&
+                        editedPerson.FirstName != "" &&
+                        editedPerson.Purpose_Visit != "" &&
+                        editedPerson.Who_invited != "" &&
+                        editedPerson.Email != "" &&
+                        editedPerson.Phone_number != "")
+                    {
+                        editedPerson.Problem_data = false;
+                    }
+
+                    personDataList[index] = editedPerson;
+                    
+                    MessageBox.Show($"{personDataList[index].LastName} {personDataList[index].FirstName} {personDataList[index].Problem_data}");
+
+                    PersonDataGrid.ItemsSource = null;
+                    PersonDataGrid.ItemsSource = personDataList;
+
+                }
+            }
+        }
 
 
         // Обработчик для выбора файла
