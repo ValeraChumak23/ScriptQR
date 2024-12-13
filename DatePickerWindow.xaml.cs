@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace ScriptQR
 {
@@ -12,20 +14,23 @@ namespace ScriptQR
         public DatePickerWindow()
         {
             InitializeComponent();
-            this.Left = App.WindowLeft;  // Используем глобальные координаты
-            this.Top = App.WindowTop;
         }
+
+     
+
+
 
         private void ApplyAndContinue_Click(object sender, RoutedEventArgs e)
         {
+            // Убедитесь, что обе даты выбраны
             if (StartDatePicker.SelectedDate.HasValue && EndDatePicker.SelectedDate.HasValue)
             {
-                if (StartDatePicker.SelectedDate.Value < EndDatePicker.SelectedDate.Value)
+                if (StartDatePicker.SelectedDate.Value <= EndDatePicker.SelectedDate.Value)
                 {
                     StartDate = StartDatePicker.SelectedDate.Value;
-                    EndDate = EndDatePicker.SelectedDate.Value;
-                    ApplyForAll = false; // Применить только для текущей строки
-                    this.DialogResult = true;
+                    EndDate = EndDatePicker.SelectedDate.Value.AddDays(1); // Добавление дня, если это необходимо
+                    this.DialogResult = true; // Устанавливаем результат, чтобы окно закрылось
+                    Close(); // Явно закрываем окно
                 }
                 else
                 {
@@ -37,5 +42,6 @@ namespace ScriptQR
                 MessageBox.Show("Пожалуйста, выберите обе даты.");
             }
         }
+
     }
 }

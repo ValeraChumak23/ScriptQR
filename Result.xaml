@@ -10,8 +10,9 @@
     <Grid>
         <StackPanel Margin="20,19,20,0" VerticalAlignment ="Top">
             <TextBlock>
-                <Run Text="Количество гостей: " />
+                <Run Text="Количество гостей:" />
                 <Run Text="{Binding CountPerson}" />
+                <Run Text=". Загрузка происходит по 10 человек." />
             </TextBlock>
         </StackPanel>
 

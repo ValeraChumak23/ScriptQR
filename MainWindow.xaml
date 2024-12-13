@@ -24,7 +24,7 @@
 
     <Grid x:Name="MainRoot" Margin="0,0,0,-6">
         <ProgressBar Name="LoadingProgressBar" IsIndeterminate="True" Visibility="Collapsed" Width="200" Height="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-        <Button Width="136" Height="53" VerticalAlignment="Top" HorizontalAlignment="Center" Click="Dounload_Data" Margin="0,396,0,0">
+        <Button Name="Dounload_button" Width="136" Height="53" VerticalAlignment="Top" HorizontalAlignment="Center" Click="Dounload_Data" Margin="0,396,0,0" IsEnabled="False" >
             <TextBlock Text="Загрузить данные в ParsecNet 3" TextWrapping="Wrap" TextAlignment="Center"/>
         </Button>
         <TextBlock Name="SelectedFileText" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,365,0,0"/>
@@ -34,7 +34,7 @@
                 <DataGridTemplateColumn Header="">
                     <DataGridTemplateColumn.HeaderTemplate>
                         <DataTemplate>
-                            <CheckBox x:Name="SelectAllCheckBox" Click="SelectAllCheckBox_Click" IsChecked="{Binding IsSelected}"/>
+                            <CheckBox x:Name="SelectAllCheckBox" Click="SelectAllCheckBox_Click" IsChecked="True" />
                         </DataTemplate>
                     </DataGridTemplateColumn.HeaderTemplate>
                     <DataGridTemplateColumn.CellTemplate>
@@ -74,10 +74,30 @@
                 <DataGridTextColumn Header="Отчество" Binding="{Binding MiddleName}" Width="*"/>
 
                 <!-- Дата начала визита (не применяется стиль) -->
-                <DataGridTextColumn Header="Дата начала визита" Binding="{Binding Date_Start,StringFormat= dd MMMM yyyy}" Width="*"/>
+                <DataGridTextColumn Header="Дата начала визита" Binding="{Binding Date_Start,StringFormat= dd MMMM yyyy (HH:mm:ss)}" Width="*">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Date_Start}" Value="{x:Null}">
+                                    <Setter Property="Background" Value="LightCoral"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
 
                 <!-- Дата конца визита (не применяется стиль) -->
-                <DataGridTextColumn Header="Дата конца визита" Binding="{Binding Date_End,StringFormat= dd MMMM yyyy}" Width="*"/>
+                <DataGridTextColumn Header="Дата конца визита" Binding="{Binding Date_End,StringFormat= dd MMMM yyyy (HH:mm:ss)}" Width="*">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Date_End}" Value="{x:Null}">
+                                    <Setter Property="Background" Value="LightCoral"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
 
                 <!-- Цель визита -->
                 <DataGridTextColumn Header="Цель визита" Binding="{Binding Purpose_Visit}" Width="*">

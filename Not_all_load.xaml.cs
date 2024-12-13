@@ -1,6 +1,8 @@
 ﻿using ScriptQR.ServiceReference1;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,6 +13,7 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
 using System.Windows.Shapes;
 using static ScriptQR.MainWindow;
 using static ScriptQR.Window_for_choice;
@@ -85,6 +88,35 @@ namespace ScriptQR
             var send_window = new Send_window(info_about_people);
             send_window.Show();
         }
+
+        private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+        {
+            try
+            {
+                string path = e.Uri.LocalPath;
+
+                if (File.Exists(path))
+                {
+                    // Открыть файл
+                    Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+                }
+                else if (Directory.Exists(path))
+                {
+                    // Открыть папку
+                    Process.Start(new ProcessStartInfo(path) { FileName = path, UseShellExecute = true });
+                }
+                else
+                {
+                    MessageBox.Show("Путь недействителен!", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при открытии пути: {ex.Message}", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            e.Handled = true; // Указываем, что событие обработано
+        }
+
 
     }
 }

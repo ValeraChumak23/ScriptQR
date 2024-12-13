@@ -7,7 +7,7 @@
         mc:Ignorable="d"
         Title="Not_all_load" Height="473" Width="470">
     <Grid Margin="0,0,0,-6">
-        <StackPanel Margin="20,10,20,370">
+        <StackPanel Margin="20,10,20,366">
             <TextBlock>
                 <Run Text="Количество загруженных: " />
                 <Run Text="{Binding CountPerson}" />
@@ -20,9 +20,11 @@
                 <Run Text="Время (Сек): " />
                 <Run Text="{Binding Time}" />
             </TextBlock>
-            <TextBlock>
+            <TextBlock Height="20">
                 <Run Text="Путь к файлу: " />
-                <Run Text="{Binding FilePath}" />
+                <Hyperlink NavigateUri="{Binding FilePath}" RequestNavigate="Hyperlink_RequestNavigate">
+                    <Run Text="{Binding FilePath}" />
+                </Hyperlink>    
             </TextBlock>
         </StackPanel>
 

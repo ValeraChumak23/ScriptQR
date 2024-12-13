@@ -27,6 +27,7 @@ using System.Net.Sockets;
 using Microsoft.Xaml.Behaviors.Layout;
 using System.Reflection;
 using System.Data;
+using ControlzEx.Standard;
 
 namespace ScriptQR
 {
@@ -53,6 +54,10 @@ namespace ScriptQR
         public string FilePath_list_delete_people = null;
         public string FilePath_directory = null;
         public string FilePath_Icon = null;
+        public string FilePath_QRphoto = null;
+        public string FilePath_folder_photos_for_event = null;
+        public string FilePath_ListUpload_peoples = null;
+        public string Name_file_where_download_is_coming_from = "";
 
         public string name_file_QR;
         public bool Main_process = false;
@@ -108,7 +113,12 @@ namespace ScriptQR
 
                 FilePath_not_uploaded = Path.Combine(FilePath_Doc, "Not_uploaded_people.txt");
 
-                FilePath_list_delete_people = Path.Combine(FilePath_Doc, "List_delete_people.txt");
+                FilePath_list_delete_people = Path.Combine(FilePath_Doc, "Список удаленных.txt");
+
+                FilePath_QRphoto = Path.Combine(FilePath_Doc, "Qr фотографии и списки людей");
+
+                if (!Directory.Exists(FilePath_QRphoto)) Directory.CreateDirectory(FilePath_QRphoto);
+
 
                 personDataList = new List<PersonData>();
 
@@ -172,37 +182,33 @@ namespace ScriptQR
         public async Task LogMessage(string message, string type_log)
         {
             string FilePath = null;
+
             switch (type_log)
             {
-                case ("system"):
+                case "system":
                     FilePath = FilePath_log;
-                break;
+                    break;
 
-                case ("people"):
-                    FilePath = FilePath_not_uploaded;
-                break;
-
-                case ("delete_people"):
+                case "delete_people":
                     FilePath = FilePath_list_delete_people;
                     break;
+
+                case "upload_people":
+                    FilePath = FilePath_ListUpload_peoples;
+                    break;
             }
-                
-            // Проверка и создание файла, если его нет
-            if (string.IsNullOrEmpty(FilePath))
-            {
-                MessageBox.Show($"{type_log}");
-                
-                throw new ArgumentNullException(nameof(FilePath), "Путь к файлу журнала не может быть пустым.");
-            }
+
 
             if (!File.Exists(FilePath))
             {
-                if (type_log == "people") File.Create(FilePath).Dispose();
-                else File.Create(FilePath);
+                // Создаём файл, используя `StreamWriter`, чтобы избежать блокировки
+                using (var fs = new FileStream(FilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    // Файл создаётся и сразу закрывается
+                }
             }
 
             string logEntry = $"{DateTime.Now:HH:mm:ss.fff}: {message}{Environment.NewLine}";
-
 
             // Используем семафор для синхронизации доступа к файлу
             await Log_semaphore.WaitAsync();
@@ -220,70 +226,74 @@ namespace ScriptQR
             }
         }
 
-        private void Date_windows(object sender, RoutedEventArgs e)
-        {
-            var datePickerWindow = new DatePickerWindow();
-            if (datePickerWindow.ShowDialog() == true)
-            {
-                DateTime StartDate = datePickerWindow.StartDate;
-                DateTime EndDate = datePickerWindow.EndDate;
-                for (int i = 0; i < personDataList.Count; i++)
-                {
-                    var person = personDataList[i];
-                    if (person.IsSelected == true)
-                    {
-                        person.Date_Start = StartDate;
-                        person.Date_End = EndDate;
-                    }
-                    personDataList[i] = person;
 
+        public void Date_windows(object sender, RoutedEventArgs e)
+        {
+            // Принудительно завершаем редактирование
+            if (PersonDataGrid.CommitEdit(DataGridEditingUnit.Row, true))
+            {
+                var datePickerWindow = new DatePickerWindow();
+                if (datePickerWindow.ShowDialog() == true)
+                {
+                    DateTime StartDate = datePickerWindow.StartDate;
+                    DateTime EndDate = datePickerWindow.EndDate;
+                    for (int i = 0; i < personDataList.Count; i++)
+                    {
+                        var person = personDataList[i];
+                        if (person.IsSelected == true)
+                        {
+                            person.Date_Start = StartDate;
+                            person.Date_End = EndDate;
+                        }
+                        personDataList[i] = person;
+                    }
+
+                    // Обновляем источник данных
+                    PersonDataGrid.Items.Refresh();
                 }
-                PersonDataGrid.Items.Refresh();
+            }
+            else
+            {
+                MessageBox.Show("Завершите редактирование перед выбором даты.");
             }
         }
 
-        
 
 
-        private void SelectAllCheckBox_Click(object sender, RoutedEventArgs e)
+        public void SelectAllCheckBox_Click(object sender, RoutedEventArgs e)
         {
             System.Windows.Controls.CheckBox checkBox = sender as System.Windows.Controls.CheckBox;
             bool isChecked = checkBox.IsChecked == true;
-            var Person_list = personDataList;
-            if (isChecked)
+
+            if (PersonDataGrid.CommitEdit(DataGridEditingUnit.Cell, true))
             {
+                // Теперь можно продолжить обновление
+                var Person_list = personDataList;
+
                 for (int i = 0; i < Person_list.Count; i++)
                 {
-                    
                     var visit = Person_list[i];
-                    if (!visit.Date_Start.HasValue || !visit.Date_End.HasValue)
+
+                    if (isChecked)
                     {
                         visit.IsSelected = true;
                     }
                     else
                     {
                         visit.IsSelected = false;
-
                     }
+
+                    // Обновляем элемент в коллекции
                     Person_list[i] = visit;
                 }
-            }
-            else
-            {
-                for (int i = 0; i < Person_list.Count; i++)
-                {
-                    var visit = Person_list[i];
-                    if (!visit.Date_Start.HasValue || !visit.Date_End.HasValue)
-                    {
-                        visit.IsSelected = false;
-                    }
-                    Person_list[i] = visit; // Обновляем элемент в коллекции
-                }
-            }
 
-            PersonDataGrid.Items.Refresh();
+                // Обновляем DataGrid
+                PersonDataGrid.Items.Refresh();
+            }
         }
-        private void IndividualCheckBox_Click(object sender, RoutedEventArgs e)
+
+
+        public void IndividualCheckBox_Click(object sender, RoutedEventArgs e)
         {
             System.Windows.Controls.CheckBox checkBox = sender as System.Windows.Controls.CheckBox;
             var currentPerson = (PersonData)checkBox.DataContext;
@@ -323,6 +333,14 @@ namespace ScriptQR
             {
                 // создание екземпляра хранящего старые записи о человекк
                 var editedPerson = (PersonData)e.Row.Item;
+
+                if (e.Column.Header.ToString() == "Дата начала" || e.Column.Header.ToString() == "Дата окончания")
+                {
+                    e.Cancel = true; // Отменяем изменение
+                    return;
+                }
+
+
                 var textBox = e.EditingElement as System.Windows.Controls.TextBox; 
                 // старые данные для поиска человека в списке
                 string oldLastName = editedPerson.LastName;
@@ -371,22 +389,21 @@ namespace ScriptQR
                     if (editedPerson.LastName != "" &&
                         editedPerson.FirstName != "" &&
                         editedPerson.Purpose_Visit != "" &&
-                        editedPerson.Who_invited != "" &&
-                        editedPerson.Email != "" &&
-                        editedPerson.Phone_number != "")
+                        editedPerson.Who_invited != "")
                     {
                         editedPerson.Problem_data = false;
                     }
 
                     personDataList[index] = editedPerson;
                     
-                    MessageBox.Show($"{personDataList[index].LastName} {personDataList[index].FirstName} {personDataList[index].Problem_data}");
+                    //MessageBox.Show($"{personDataList[index].LastName} {personDataList[index].FirstName} {personDataList[index].Problem_data}");
 
                     PersonDataGrid.ItemsSource = null;
                     PersonDataGrid.ItemsSource = personDataList;
 
                 }
             }
+            
         }
 
 
@@ -408,6 +425,9 @@ namespace ScriptQR
                 // Обновляем текстовое поле с выбранным файлом
                 SelectedFileText.Text = $"Выбран файл: {openFileDialog.FileName}";
 
+                Name_file_where_download_is_coming_from = DateTime.Now.ToString("dd.MMMM.yyyy") + " " + Path.GetFileName(openFileDialog.FileName);
+                
+
                 // Чтение данных из файла и сохранение в поле класса
                 personDataList = await ReadDataFromFileAsync(openFileDialog.FileName);
 
@@ -416,6 +436,7 @@ namespace ScriptQR
                 {
                     PersonDataGrid.ItemsSource = personDataList;
                     DateButton.IsEnabled = true;
+                    Dounload_button.IsEnabled = true;
                 }
                 else
                 {
@@ -430,7 +451,9 @@ namespace ScriptQR
         {
             await LogMessage($"Нажата клавиша загрузка данных.", "system");
 
-            if (personDataList.All(p => p.Date_Start != null || p.Date_End != null) && personDataList.All(p => p.Problem_data != true)) {
+
+
+            if (personDataList.All(p => p.Date_Start != null || p.Date_End != null) && personDataList.All(p => p.Problem_data != true) && Dounload_button.IsEnabled == true) {
 
                 Stopwatch clock_Dounload = new Stopwatch();
 
@@ -444,7 +467,18 @@ namespace ScriptQR
 
                 if (Session_ID != Guid.Empty)
                 {
+                    // создание папки,где будут хранится QR для определенного события, и списка загруженных людей
+                    FilePath_folder_photos_for_event = Path.Combine(FilePath_QRphoto, Name_file_where_download_is_coming_from);
+                    delete_and_create_file();
+                    FilePath_ListUpload_peoples = Path.Combine(FilePath_folder_photos_for_event, "Список загруженых людей.txt");
+                    MessageBox.Show($"{FilePath_ListUpload_peoples}");
+
+
+                    clock_Dounload.Start();
+
+
                     await LogMessage($"Сессия успешно открыта для пользователя с именем:{UserName}","system");
+
                     await LogMessage($"Получение ID для дополнительных полей.", "system");
                     await GetVisitorExtraFieldTemplates(Session_ID);
 
@@ -455,8 +489,9 @@ namespace ScriptQR
 
                     // Получение списка людей из подразделения
                     await Getting_list_people_from_division();
+                    MessageBox.Show($"колличество людей в подразделении {List_people_from_didvision.Count}");
 
-                    clock_Dounload.Start();
+                    
                     if (Email_column_ID != Guid.Empty && Phone_column_ID != Guid.Empty)
                     {
                         var semaphore = new SemaphoreSlim(10);
@@ -477,10 +512,10 @@ namespace ScriptQR
                                 {
 
                                     // Проверка наличия персоны в списке людей из подразделения, с последующими условиями
-                                    if (List_people_from_didvision.Count() > 0) await Checking_availability_deletion(personData.LastName, personData.FirstName, personData.MiddleName);
-
+                                    if (List_people_from_didvision.Count() >= 0) await Checking_availability_deletion(personData.LastName, personData.FirstName, personData.MiddleName);
 
                                     string FIO = personData.LastName + " " + personData.FirstName + " " + personData.MiddleName;
+
                                     int num = 0;
 
                                     // Обновляем UI с добавлением персоны
@@ -489,11 +524,10 @@ namespace ScriptQR
                                         num = res.AddPerson(FIO);
                                     });
 
-                                    if (personData.Email == null)
+                                    if (String.IsNullOrEmpty(personData.Email) || String.IsNullOrEmpty(personData.Phone_number))
                                     {
                                         faild_dounload_personDataList.Add(personData);
                                         has_in_list_faild_dounload = true;
-                                        await LogMessage($"{FIO}", "people");
                                     }
 
                                     await LogMessage($"Создание гостя ФИО: {personData.LastName} {personData.FirstName} {personData.MiddleName}","system");
@@ -556,7 +590,7 @@ namespace ScriptQR
                                             if (Qr_code_text != "")
                                             {
 
-                                                flag_generatePhotoQR = await GeneratePhotoQR(Qr_code_text, personData.LastName, personData.FirstName, personData.MiddleName, FilePath_Doc);
+                                                flag_generatePhotoQR = await GeneratePhotoQR(Qr_code_text, personData.LastName, personData.FirstName, personData.MiddleName, personData.Email, personData.Phone_number);
 
                                                 if (flag_generatePhotoQR && has_in_list_faild_dounload == false)
                                                 {
@@ -586,32 +620,7 @@ namespace ScriptQR
                                                 }
                                             }
                                         }
-                                        else
-                                        {
-                                            if (has_in_list_faild_dounload == false)
-                                            {
-                                                faild_dounload_personDataList.Add(personData);
-                                                has_in_list_faild_dounload = true;
-                                                await LogMessage($"{FIO}", "people");
-                                            }
-                                            await Application.Current.Dispatcher.InvokeAsync(() =>
-                                            {
-                                                res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
-                                            });
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (has_in_list_faild_dounload == false)
-                                        {
-                                            faild_dounload_personDataList.Add(personData);
-                                            has_in_list_faild_dounload = true;
-                                            await LogMessage($"{FIO}", "people");
-                                        }
-                                        await Application.Current.Dispatcher.InvokeAsync(() =>
-                                        {
-                                            res.UpdatePerson(num, flag_dounload.ToString(), flag_generatePhotoQR.ToString(), flag_SendPhotoQR.ToString());
-                                        });
+                                       
                                     }
                                     
                                 }
@@ -634,12 +643,12 @@ namespace ScriptQR
                     if (faild_dounload_personDataList.Count == 0)
                     {
                         //MessageBox.Show($"Загрузка прошла успешно!\nЗагружено {count_person}.\nЗа {clock_Dounload.Elapsed.TotalSeconds}");
-                        var all_res_windows = new All_dounload((count_person).ToString(), (Math.Round(clock_Dounload.Elapsed.TotalSeconds, 2)).ToString());
+                        var all_res_windows = new All_dounload((count_person).ToString(), (Math.Round(clock_Dounload.Elapsed.TotalSeconds, 2)).ToString(), FilePath_ListUpload_peoples);
                         all_res_windows.Show();
                     }
                     else
                     {
-                        var Not_all_res_windows = new Not_all_load(faild_dounload_personDataList, (count_person - faild_dounload_personDataList.Count).ToString(), (Math.Round(clock_Dounload.Elapsed.TotalSeconds, 2)).ToString(),FilePath_not_uploaded);
+                        var Not_all_res_windows = new Not_all_load(faild_dounload_personDataList, (count_person - faild_dounload_personDataList.Count).ToString(), (Math.Round(clock_Dounload.Elapsed.TotalSeconds, 2)).ToString(),FilePath_ListUpload_peoples);
                         Not_all_res_windows.Show();
                         //MessageBox.Show($"Загрузка прошла успешно!\nЗагружено {count_person - faild_dounload_personDataList.Count}.\nЗа {clock_Dounload.Elapsed.TotalSeconds}");
                     }
@@ -808,7 +817,7 @@ namespace ScriptQR
                                 if (IsValidPhoneNumber(values[8]) && IsLengthValid(values[8])) phone_number = values[8];
                             }
 
-                            if (values[0] == "" || values[1] == "" || values[5] == "" || values[6] == "" || phone_number == "" || email == "") problem_data = true;
+                            if (values[0] == "" || values[1] == "" || values[5] == "" || values[6] == "" ) problem_data = true;
 
                             var person = new PersonData
                             {
@@ -821,7 +830,8 @@ namespace ScriptQR
                                 Who_invited = values[6],
                                 Email = email,
                                 Phone_number = phone_number,
-                                Problem_data = problem_data
+                                Problem_data = problem_data,
+                                IsSelected = true
 
                             };
 
@@ -940,7 +950,7 @@ namespace ScriptQR
             public string Who_invited { get; set; }
             public string? Email { get; set; }
             public string? Phone_number { get; set; }
-            public bool IsSelected { get; set; }
+            public bool IsSelected { get; set; } 
             public bool Problem_data {  get; set; }
 
         }
@@ -1167,28 +1177,20 @@ namespace ScriptQR
             }
         }
 
-        public async Task<bool> GeneratePhotoQR(string Text_QR, string LastName, string FirstName, string MidleName, string DocPath)
+        public async Task<bool> GeneratePhotoQR(string Text_QR, string LastName, string FirstName, string MidleName, string Email, string Phone_namber)
         {
             if (!string.IsNullOrEmpty(Text_QR))
             {
                 try
                 {
-                    // Создаем путь до папки QR_photo
-                    string qrPhotoFolder = Path.Combine(DocPath, "QR_photo");
 
-                    // Выводим путь для проверки
-                    //Console.WriteLine($"Путь к папке QR_photo: {qrPhotoFolder}");
-
-                    // Проверяем, существует ли папка, и создаем её, если она отсутствует
-                    if (!Directory.Exists(qrPhotoFolder))
-                    {
-                        //Console.WriteLine("Папка не существует, создаем...");
-                        Directory.CreateDirectory(qrPhotoFolder);
-                        //Console.WriteLine("Папка создана успешно.");
-                    }
+                    string problem_data = string.IsNullOrEmpty(Email) && string.IsNullOrEmpty(Phone_namber) ? "Отсутсвует почта и номер телефона!" :
+                                        string.IsNullOrEmpty(Email) ? "Отсутствует почта!" :
+                                        string.IsNullOrEmpty(Phone_namber) ? "Отсутствует номер телефона!" :
+                                        "Данные корректны!";
 
                     // Формируем полный путь до файла с QR-кодом
-                    string filepath_QR = Path.Combine(qrPhotoFolder, $"QR_photoqrcode_{LastName} {FirstName} {MidleName}.png");
+                    string filepath_QR = Path.Combine(FilePath_folder_photos_for_event, $"QR-фото для ({LastName} {FirstName} {MidleName}).png");
 
                     // Генерация QR-кода
                     QRCodeGenerator qrGenerator = new QRCodeGenerator();
@@ -1203,13 +1205,13 @@ namespace ScriptQR
 
                     // Записываем файл с QR-кодом
                     await Task.Run(() => File.WriteAllBytes(filepath_QR, bitmapQRCode.GetGraphic(20)));
-                    name_file_QR = $"QR_photoqrcode_{LastName} {FirstName} {MidleName}.png";
-                    await LogMessage($"Фото Qr кода для гостяуспешно создано.\nИмя файла фото {name_file_QR}", "system");
+                    await LogMessage($"Гость: {LastName} {FirstName} {MidleName}.\nПроблемы с данными(или их отсутствие если написано \"Данные корректны!\"): {problem_data}", "upload_people");
+                    await LogMessage($"Фото Qr кода для гостя ({LastName} {FirstName} {MidleName}) успешно создано.\n \nНазвание файла QR-фото \"QR-фото для ({LastName} {FirstName} {MidleName}).png\"", "system");
                     return true;
                 }
                 catch (Exception ex)
                 {
-                    //MessageBox.Show(($"Ошибка: {ex.Message}"));
+                    MessageBox.Show($"Ошибка при создании фото Qr кода для гостя: {ex.Message}");
                     await LogMessage($"Ошибка при создании фото Qr кода для гостя.\n{ex.Message}", "system");
                     return false;
                 }
@@ -1238,7 +1240,7 @@ namespace ScriptQR
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Произошла ошибка при получении организационных единиц с посетителями: {ex.Message}");
+                MessageBox.Show($"Проблема со списком людей из подразделения: {ex.Message}");
                 
             }
 
@@ -1253,7 +1255,7 @@ namespace ScriptQR
                 if (check_availability != null)
                 {
                     string FIO = $"{check_availability.LAST_NAME} {check_availability.FIRST_NAME} {check_availability.MIDDLE_NAME}";
-                    await LogMessage($"{FIO} найден", "delete_people");
+          
                     var client = new IntegrationServiceSoapClient();
                     var answer = await client.GetPersonExtraFieldValuesAsync(Session_ID, check_availability.ID);
                     var res = answer.Body.GetPersonExtraFieldValuesResult;
@@ -1274,19 +1276,14 @@ namespace ScriptQR
                         i.TEMPLATE_ID == Date_start_end_column_ID &&
                         DateTime.TryParse(((i.VALUE.ToString()).Split(' '))[3], out DateTime parsedDate) &&
                         parsedDate.Date <= DateTime.Now.Date);
-                    if (check_metod && check_date)
+                    if (check_metod || check_date)
                     {
                         //MessageBox.Show($"Можно удалять");
                         var delete_person = await client.DeletePersonAsync(Session_ID, check_availability.ID);
                         var res_delete = delete_person.Body.DeletePersonResult;
-                        if (res_delete.Result == 0)
-                        {
-                            // запись данных в основной лог файл и лог с Фио удаленных
-                        }
-                        else
-                        {
-                            // запись в основной лог об ошибке с кодом ошибки 
-                        }
+                        // запись данных в основной лог файл и лог с Фио удаленных
+                        await LogMessage($"{FIO} найден и удален", "delete_people");
+                        await LogMessage($"{FIO} удален из базы ParsecNet3!", "system");
                         
                     }
 
@@ -1295,7 +1292,8 @@ namespace ScriptQR
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Произошла ошибка при получении организационных единиц с посетителями: {ex.Message}");
+                //MessageBox.Show($"Произошла ошибка при получении организационных единиц с посетителями: {ex.Message}");
+                await LogMessage($"Ошибка!\n{ex.Message}", "system");
 
             }
 
@@ -1389,6 +1387,36 @@ namespace ScriptQR
                 MessageBox.Show($"Произошла ошибка при получении организационных единиц с посетителями: {ex.Message}");
                 return false;
             }
+        }
+
+        public void delete_and_create_file()
+        {
+            try
+            {
+                if (Directory.Exists(FilePath_folder_photos_for_event))
+                {
+                    foreach (string file in Directory.GetFiles(FilePath_folder_photos_for_event))
+                    {
+                        File.SetAttributes(file, FileAttributes.Normal); // Снять защитные атрибуты
+                        File.Delete(file); // Удалить файл
+                    }
+                }
+                else Directory.CreateDirectory(FilePath_folder_photos_for_event); // Создать новую папку
+                
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                Console.WriteLine($"Недостаточно прав для удаления папки: {ex.Message}");
+            }
+            catch (IOException ex)
+            {
+                Console.WriteLine($"Ошибка ввода-вывода: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Общая ошибка: {ex.Message}");
+            }
+
         }
     }
 }

@@ -5,13 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ScriptQR"
         mc:Ignorable="d"
-        Title="Результат" Height="160" Width="300"
+        Title="Результат" Height="176" Width="376"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen">
 
     <Grid Margin="0,0,0,1">
         <TextBlock Text="Загрузка произошла успешно!" TextAlignment ="Center" Margin="0,5,0,78" />
-        <StackPanel Margin="20,30,20,17">
+        <StackPanel Margin="20,30,10,10">
             <TextBlock>
                 <Run Text="Количество загруженных: " />
                 <Run Text="{Binding CountPerson}" />
@@ -21,7 +21,13 @@
                 <Run Text="{Binding Time}" />
                 <Run Text="Сек" />
             </TextBlock>
-            
+            <TextBlock Height="20">
+                <Run Text="Путь к файлу: " />
+                <Hyperlink NavigateUri="{Binding FilePath}" RequestNavigate="Hyperlink_RequestNavigate">
+                    <Run Text="{Binding FilePath}" />
+                </Hyperlink>
+            </TextBlock>
+
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,10,0">
                 <Button Content="Ок" Width="90" Click="Ok_Click"/>
